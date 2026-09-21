@@ -186,10 +186,8 @@ public class Podify {
         System.out.println();
         System.out.println("How to use Podify:");
         System.out.println(" - Type a menu number and press Enter.");
-        System.out.println(" - Pick songs by their id (like S001) or "
-            + "their full title.");
-        System.out.println(" - When playing or removing, you can also type "
-            + "the song's number from your list.");
+        System.out.println(" - Pick a song by its number in the list or "
+            + "its full title.");
         System.out.println(" - Type 0 when asked for a song or a search to "
             + "cancel and go back.");
         System.out.println(" - Titles and searches can be up to "
@@ -254,7 +252,7 @@ public class Podify {
 
     // ----------------------------------------------------------
     /**
-     * Shows every imported song with its number and id.
+     * Shows every imported song with its number.
      */
     private void showImportedSongs() {
         List<Song> songs = llm.getImportedSongs();
@@ -405,7 +403,7 @@ public class Podify {
 
     // ----------------------------------------------------------
     /**
-     * Keeps asking until the user picks a song by number, id or title.
+     * Keeps asking until the user picks a song by number or title.
      *
      * @param songs  the list that was just shown to the user
      * @param action what will be done to the song, like "play"
@@ -414,7 +412,7 @@ public class Podify {
      */
     private Song pickFromList(List<Song> songs, String action, String place) {
         while (true) {
-            String text = readSongName("Type the number, id or title of the "
+            String text = readSongName("Type the number or title of the "
                 + "song to " + action + " ");
             if (text == null) {
                 return null;
@@ -543,7 +541,7 @@ public class Podify {
      * @return the song as one line of text
      */
     private String describeImported(Song song) {
-        return song.getId() + "  " + song.getName() + " - "
+        return song.getName() + " - "
             + song.getArtist() + " (" + song.getDuration() + ", "
             + song.getGenre() + ")";
     }
@@ -551,17 +549,16 @@ public class Podify {
 
     // ----------------------------------------------------------
     /**
-     * Finds a song in the list by id or title, ignoring case.
+     * Finds a song in the list by title, ignoring case.
      *
      * @param songs the list to look in
-     * @param text  the id or title the user typed
+     * @param text  the title the user typed
      * @return the song, or null if there is no match
      */
     private Song findInList(List<Song> songs, String text) {
         for (int i = 0; i < songs.size(); i++) {
             Song song = songs.get(i);
-            if (text.equalsIgnoreCase(song.getId())
-                || text.equalsIgnoreCase(song.getName())) {
+            if (text.equalsIgnoreCase(song.getName())) {
                 return song;
             }
         }
