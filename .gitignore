@@ -1,1 +1,17 @@
+# macOS folder metadata
+.DS_Store
+
+# Eclipse build output
 /bin/
+bin/
+*.class
+
+# Eclipse workspace settings (.classpath and .project are kept on purpose,
+# because they hold the CS2-Support library link the whole team needs)
+.metadata/
+.settings/
+*.launch
+
+# Temporary CSV files written by PlaylistLLMTest. They are deleted in
+# tearDown, but a test that is stopped part way can leave one behind.
+test_*.csv

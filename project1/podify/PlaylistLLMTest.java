@@ -5,56 +5,34 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import student.TestCase;
 
 // -------------------------------------------------------------------------
 /**
- *  Tests the PlaylistLLM class.
+ * Tests the PlaylistLLM class.
  *
- *  The spec's test plan asks for one normal case and one bad-input case for
- *  loadSongs. The other public methods are tested the same way, because the
- *  whole point of this class is that a broken file must never crash the
- *  program or change songs that were already loaded.
- *
- *  The songs used by the save tests are built by hand in setUp. The tests
- *  that read a file write their own small CSV first, using the same File
- *  and PrintWriter classes that PlaylistLLM itself uses. Every file that a
- *  test makes is deleted again in tearDown, so the tests never leave
- *  anything behind and never depend on each other.
- *
- *  @author Dochan (Logan) Moon
- *  @version 20 Sept 2026
+ * @author Dochan (Logan) Moon
+ * @version 20 Sept 2026
  */
-public class PlaylistLLMTest extends student.TestCase {
+public class PlaylistLLMTest extends TestCase {
 
     //~ Fields ................................................................
-
-    /** The file most of the reading tests load. */
     private static final String SAMPLE_FILE = "test_sample.csv";
-
-    /** The file the saving tests write to. */
     private static final String SAVED_FILE = "test_saved.csv";
 
     private PlaylistLLM llm;
-
     private Song song1;
     private Song song2;
     private Song song3;
-
     private UserPlaylist playlist;
-
-    // Every file a test creates is remembered here so tearDown can delete
-    // it again.
     private List<String> createdFiles;
 
 
-    //~ Set Up ................................................................
+    //~ Constructors ..........................................................
 
     // ----------------------------------------------------------
     /**
-     * Set up method that runs at the beginning of every test. It builds a
-     * fresh PlaylistLLM, three songs, and a playlist holding those songs.
-     * The songs have no id, because that is what a playlist the user built
-     * by hand looks like.
+     * Sets up each test method.
      */
     public void setUp() {
         llm = new PlaylistLLM();
@@ -73,7 +51,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * Runs after every test and deletes the files that the test made.
+     * Deletes the files each test made.
      */
     public void tearDown() {
         for (int i = 0; i < createdFiles.size(); i++) {
@@ -85,11 +63,11 @@ public class PlaylistLLMTest extends student.TestCase {
     }
 
 
-    //~ loadSongs: normal cases ...............................................
+    //~Public  Methods ........................................................
 
     // ----------------------------------------------------------
     /**
-     * The normal case from the test plan: a file where every row is good.
+     * Tests loadSongs() with a good file.
      */
     public void testLoadSongsValidFile() {
         writeSampleFile();
@@ -111,8 +89,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * A file that has no header still loads. The header is only skipped
-     * when the first line actually looks like one.
+     * Tests loadSongs() when the file has no header line.
      */
     public void testLoadSongsWithoutHeader() {
         String[] lines = {"S001,Levels,Avicii,3:19,EDM,4"};
@@ -125,8 +102,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * Blank lines are normal at the end of a text file, so they must not
-     * count as damaged rows.
+     * Tests loadSongs() with blank lines in the file.
      */
     public void testLoadSongsIgnoresBlankLines() {
         String[] lines = {
@@ -138,17 +114,14 @@ public class PlaylistLLMTest extends student.TestCase {
 
         assertTrue(llm.loadSongs("test_blanks.csv"));
         assertEquals(1, llm.numberImportedSongs());
+        // * blank lines are not damaged rows
         assertEquals(0, llm.getSkippedRows());
     }
 
 
-    //~ loadSongs: bad input ..................................................
-
     // ----------------------------------------------------------
     /**
-     * The bad-input case from the test plan: the file is not there. The
-     * scope document says this must show an error and let the user try
-     * again, so loadSongs returns false instead of throwing.
+     * Tests loadSongs() when the file is not there.
      */
     public void testLoadSongsFileNotFound() {
         assertFalse(llm.loadSongs("no_such_file_anywhere.csv"));
@@ -159,7 +132,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * A missing or blank file name is rejected before anything is opened.
+     * Tests loadSongs() with a missing or blank file name.
      */
     public void testLoadSongsBlankFileName() {
         assertFalse(llm.loadSongs(null));
@@ -172,8 +145,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * A file where every row is broken loads nothing, so loadSongs reports
-     * failure rather than pretending it worked.
+     * Tests loadSongs() when every row is broken.
      */
     public void testLoadSongsNoUsableRows() {
         String[] lines = {
@@ -190,8 +162,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * The scope document says invalid input must not change saved data. A
-     * failed load has to leave the songs from the last good load alone.
+     * Tests that a failed loadSongs() keeps the songs already loaded.
      */
     public void testFailedLoadKeepsOldSongs() {
         writeSampleFile();
@@ -209,17 +180,21 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * Each kind of broken row is skipped and counted, and the good rows
-     * around it are still loaded.
+     * Tests loadSongs() with every kind of damaged row.
      */
     public void testLoadSongsSkipsDamagedRows() {
         String[] lines = {
             "id,title,artist,duration,genre,playCount",
             "S001,Good Song,Good Artist,3:20,Pop,5",
+            // * too few columns
             "S002,Too Few Columns,Artist,3:20,Pop",
+            // * empty title
             "S003,,Artist,3:20,Pop,1",
+            // * play count is not a number
             "S004,Bad Count,Artist,3:20,Pop,abc",
+            // * negative play count
             "S005,Negative Count,Artist,3:20,Pop,-4",
+            // * title over the 30 character limit
             "S006,This Title Is Far Too Long To Accept,Artist,3:20,Pop,1",
             "S007,Still Good,Other Artist,4:00,Rock,2"};
         writeFile("test_damaged.csv", lines);
@@ -234,9 +209,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * The scope document asks for a duplicate warning, which is a different
-     * message from "the file is damaged". Duplicates are matched on the id
-     * the LLM assigned, and the first song listed is the one that is kept.
+     * Tests loadSongs() when the file repeats an id.
      */
     public void testLoadSongsCountsDuplicatesSeparately() {
         String[] lines = {
@@ -248,11 +221,11 @@ public class PlaylistLLMTest extends student.TestCase {
 
         assertTrue(llm.loadSongs("test_dupes.csv"));
         assertEquals(1, llm.numberImportedSongs());
+        // * duplicates are counted apart from damaged rows
         assertEquals(2, llm.getDuplicateRows());
         assertEquals(0, llm.getDamagedRows());
         assertEquals(2, llm.getSkippedRows());
-
-        // The first row wins, so the later play count of 9 is thrown away.
+        // * the first row wins, so the play count of 9 is thrown away
         assertEquals("First Copy", llm.getImportedSongs().get(0).getName());
         assertTrue(llm.getLastError().contains("duplicate"));
     }
@@ -260,16 +233,20 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * A duration must look like M:SS and the seconds must really be
-     * seconds, so "3:75" is refused even though its shape is right.
+     * Tests loadSongs() with bad durations.
      */
     public void testLoadSongsChecksDuration() {
         String[] lines = {
             "id,title,artist,duration,genre,playCount",
+            // * more than 59 seconds
             "S001,Seconds Too Big,Artist,3:75,Pop,1",
+            // * only one digit after the colon
             "S002,One Digit Seconds,Artist,3:5,Pop,1",
+            // * no colon at all
             "S003,No Colon,Artist,351,Pop,1",
+            // * nothing before the colon
             "S004,Starts With Colon,Artist,:51,Pop,1",
+            // * a letter instead of a digit
             "S005,Letters Inside,Artist,3:5x,Pop,1",
             "S006,Just Right,Artist,3:59,Pop,1",
             "S007,Zero Seconds,Artist,4:00,Pop,1"};
@@ -281,18 +258,18 @@ public class PlaylistLLMTest extends student.TestCase {
     }
 
 
-    //~ searchSongs ...........................................................
-
     // ----------------------------------------------------------
     /**
-     * A search matches part of a title or part of an artist name, and does
-     * not care about upper or lower case.
+     * Tests searchSongs()
      */
     public void testSearchSongsNormal() {
         loadSampleFile();
 
+        // * a whole title
         assertEquals(1, llm.searchSongs("Blinding Lights").size());
+        // * part of an artist name, in lower case
         assertEquals(2, llm.searchSongs("weeknd").size());
+        // * part of a title
         assertEquals(1, llm.searchSongs("clock").size());
         assertEquals("", llm.getLastError());
     }
@@ -300,8 +277,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * A blank search is rejected and the user is told what to type. The
-     * list that comes back is empty, never null.
+     * Tests searchSongs() with a blank query.
      */
     public void testSearchSongsBlank() {
         loadSampleFile();
@@ -318,13 +294,12 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * The scope document says an over-long search must be refused with a
-     * message that explains the limit. This query is 47 characters, which
-     * is past the 30 character limit.
+     * Tests searchSongs() with a query over the character limit.
      */
     public void testSearchSongsTooLong() {
         loadSampleFile();
 
+        // * 47 characters, past the limit of 30
         String longQuery = "This search text is much too long to be accepted";
 
         assertTrue(llm.searchSongs(longQuery).isEmpty());
@@ -335,8 +310,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * Searching for something that is not there gives the "song not found"
-     * message the scope document asks for.
+     * Tests searchSongs() when nothing matches.
      */
     public void testSearchSongsNoMatch() {
         loadSampleFile();
@@ -346,15 +320,14 @@ public class PlaylistLLMTest extends student.TestCase {
     }
 
 
-    //~ getSong and getSongById ...............................................
-
     // ----------------------------------------------------------
     /**
-     * getSong finds a song by its whole title, ignoring case.
+     * Tests getSong()
      */
     public void testGetSongNormal() {
         loadSampleFile();
 
+        // * upper and lower case are ignored
         Song song = llm.getSong("blinding lights");
         assertNotNull(song);
         assertEquals("The Weeknd", song.getArtist());
@@ -364,8 +337,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * A blank title and a title that is not in the list both give null
-     * instead of throwing, so the menu can print the message and carry on.
+     * Tests getSong() with a blank or unknown title.
      */
     public void testGetSongBadInput() {
         loadSampleFile();
@@ -383,8 +355,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * Two songs can share a title, so the menu picks songs by the id the
-     * LLM gave them instead.
+     * Tests getSongById()
      */
     public void testGetSongById() {
         String[] lines = {
@@ -398,8 +369,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
         assertEquals("Drake", llm.getSongById("S001").getArtist());
         assertEquals("Cover Artist", llm.getSongById("S002").getArtist());
-
-        // getSong only ever finds the first one, which is why ids exist.
+        // * getSong only finds the first one, which is why ids exist
         assertEquals("Drake", llm.getSong("One Dance").getArtist());
 
         assertNull(llm.getSongById("S999"));
@@ -410,39 +380,31 @@ public class PlaylistLLMTest extends student.TestCase {
     }
 
 
-    //~ getImportedSongs ......................................................
-
     // ----------------------------------------------------------
     /**
-     * The list that comes back is a copy, so changing it must not change
-     * what PlaylistLLM holds. The Song objects inside are shared on
-     * purpose, because playing a song has to count everywhere.
+     * Tests getImportedSongs()
      */
     public void testGetImportedSongsIsACopy() {
         loadSampleFile();
 
+        // * changing the copy must not change the real list
         List<Song> songs = llm.getImportedSongs();
         songs.clear();
-
         assertEquals(3, llm.numberImportedSongs());
 
+        // * but the Song objects inside are shared on purpose
         llm.getImportedSongs().get(0).play();
         assertEquals(8, llm.getImportedSongs().get(0).getPlayCount());
     }
 
 
-    //~ saveSongs and savePlaylist ............................................
-
     // ----------------------------------------------------------
     /**
-     * The normal case: songs that are saved and then loaded again come back
-     * exactly as they were, play counts included. This is what makes the
-     * data survive closing the program.
+     * Tests saveSongs() by loading the file back again.
      */
     public void testSaveSongsRoundTrip() {
         loadSampleFile();
 
-        // Play one song twice so the saved counts are not all the same.
         llm.getSong("Clocks").play();
         llm.getSong("Clocks").play();
 
@@ -459,15 +421,14 @@ public class PlaylistLLMTest extends student.TestCase {
         assertEquals("Coldplay", clocks.getArtist());
         assertEquals("5:07", clocks.getDuration());
         assertEquals("Rock", clocks.getGenre());
+        // * the two plays were saved
         assertEquals(4, clocks.getPlayCount());
     }
 
 
     // ----------------------------------------------------------
     /**
-     * The playlist built in setUp holds songs with no id, which is what a
-     * playlist the user made by hand looks like. Saving still has to
-     * produce a file that can be read back, so an id is made up.
+     * Tests savePlaylist() with songs that have no id.
      */
     public void testSavePlaylistWithoutIds() {
         createdFiles.add(SAVED_FILE);
@@ -476,18 +437,17 @@ public class PlaylistLLMTest extends student.TestCase {
         PlaylistLLM reloaded = new PlaylistLLM();
         assertTrue(reloaded.loadSongs(SAVED_FILE));
         assertEquals(3, reloaded.numberImportedSongs());
-
         assertEquals(6, reloaded.getSong("Cruel Summer").getPlayCount());
         assertEquals("Kendrick Lamar",
             reloaded.getSong("HUMBLE.").getArtist());
+        // * an id was made up so the file can be read back
         assertNotNull(reloaded.getSong("Hotline Bling").getId());
     }
 
 
     // ----------------------------------------------------------
     /**
-     * Playing a song and then saving keeps the new count, which is the
-     * whole point of saving the playlist between runs.
+     * Tests savePlaylist() after a song has been played.
      */
     public void testSavePlaylistKeepsNewPlayCounts() {
         song1.play();
@@ -505,7 +465,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * Bad input to the save methods is refused, and nothing is written.
+     * Tests saveSongs() and savePlaylist() with bad input.
      */
     public void testSaveSongsBadInput() {
         assertFalse(llm.saveSongs(null, playlist.getSongs()));
@@ -516,6 +476,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
         assertFalse(llm.saveSongs(SAVED_FILE, null));
         assertTrue(llm.getLastError().contains("no song list"));
+        // * nothing was written
         assertFalse(new File(SAVED_FILE).exists());
 
         assertFalse(llm.savePlaylist(SAVED_FILE, null));
@@ -526,9 +487,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * A comma inside a title would split one column into two and make the
-     * saved file unreadable, so the save is refused and the file on disk is
-     * left exactly as it was.
+     * Tests saveSongs() when a title holds a comma.
      */
     public void testSaveSongsRefusesComma() {
         createdFiles.add(SAVED_FILE);
@@ -541,7 +500,7 @@ public class PlaylistLLMTest extends student.TestCase {
         assertFalse(llm.savePlaylist(SAVED_FILE, withComma));
         assertTrue(llm.getLastError().contains("comma"));
 
-        // The good file that was already there is untouched.
+        // * the good file that was already there is untouched
         PlaylistLLM reloaded = new PlaylistLLM();
         assertTrue(reloaded.loadSongs(SAVED_FILE));
         assertEquals(3, reloaded.numberImportedSongs());
@@ -552,8 +511,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * Writes the small file that most of the reading tests share, then
-     * loads it.
+     * Writes the sample file and loads it.
      */
     private void loadSampleFile() {
         writeSampleFile();
@@ -563,8 +521,7 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * Writes the sample file used by several tests. Two of the songs share
-     * an artist so that a search can find more than one row.
+     * Writes the sample file the reading tests share.
      */
     private void writeSampleFile() {
         String[] lines = {
@@ -578,11 +535,10 @@ public class PlaylistLLMTest extends student.TestCase {
 
     // ----------------------------------------------------------
     /**
-     * Writes one CSV file for a test to read, and remembers the name so
-     * that tearDown can delete it afterwards.
+     * Writes one CSV file and remembers it for tearDown.
      *
-     * @param fileName the name of the file to create
-     * @param lines    the lines to write, one per row of the file
+     * @param fileName the file to create
+     * @param lines    the lines to write
      */
     private void writeFile(String fileName, String[] lines) {
         createdFiles.add(fileName);
@@ -593,9 +549,6 @@ public class PlaylistLLMTest extends student.TestCase {
             }
         }
         catch (FileNotFoundException e) {
-            // Writing into the project folder should always work. If it
-            // ever does not, the test has to fail rather than pass by
-            // accident on a file that was never created.
             fail("Could not write the test file " + fileName);
         }
     }

@@ -3,6 +3,7 @@
 	<name>CS2114Group29</name>
 	<comment></comment>
 	<projects>
+		<project>CS2-Support</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
