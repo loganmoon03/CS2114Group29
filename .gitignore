@@ -15,3 +15,9 @@ bin/
 # Temporary CSV files written by PlaylistLLMTest. They are deleted in
 # tearDown, but a test that is stopped part way can leave one behind.
 test_*.csv
+
+# Each person's own saved playlist and play counts, written by Podify
+my_playlist.csv
+
+# Personal notes and diagrams, kept locally only
+docs/
