@@ -348,14 +348,18 @@ public class PlaylistLLM {
      * @return true if the format is correct
      */
     private boolean isValidDuration(String text) {
+        // Find where the colon that separates minutes from seconds sits.
+        // indexOf returns the index of the first ':' in the string, or -1
+        // if the string has no colon at all.
         int colon = text.indexOf(':');
 
         // There must be a colon, at least one digit before it, and exactly
         // two characters after it.
+        // "3:51"   length = 4,  콜론 index = 1,  4 - 3 = 1
         if (colon < 1 || colon != text.length() - 3) {
             return false;
         }
-
+        // Every character except the colon must be a digit.
         for (int i = 0; i < text.length(); i++) {
             if (i != colon && !Character.isDigit(text.charAt(i))) {
                 return false;

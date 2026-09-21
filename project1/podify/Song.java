@@ -18,7 +18,6 @@ public class Song {
     private String duration;
     private int playCount;
     private String genre;
-    
     //~ Constructors ..........................................................
     
     // ----------------------------------------------------------
