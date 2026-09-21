@@ -160,21 +160,23 @@ public class UserPlaylist {
     //~ Helper Methods ........................................................
 
     /**
-     * Helper method to check equality by content (Title & Artist).
+     * Helper method to check if the song is already in the playlist.
      */
     private boolean containsSong(Song target) {
         return findSongIndex(target) != -1;
     }
 
     /**
-     * Helper method to find index based on song title and artist.
+     * Helper method to find index based on the LLM id, or on title and
+     * artist when a song has no id.
      */
     private int findSongIndex(Song target) {
         if (target == null) return -1;
         for (int i = 0; i < songs.size(); i++) {
             Song current = songs.get(i);
-            if (current.getName().equalsIgnoreCase(target.getName()) &&
-                current.getArtist().equalsIgnoreCase(target.getArtist())) {
+            // Song.equals compares ids, so two versions of a song with the
+            // same title and artist still count as different songs.
+            if (current.equals(target)) {
                 return i;
             }
         }
