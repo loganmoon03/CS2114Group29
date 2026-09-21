@@ -77,7 +77,7 @@ public class Podify {
         boolean running = true;
         while (running) {
             printMenu();
-            String choice = readLine("Choose an option: ");
+            String choice = readLine ("Choose an option: ");
 
             // No more input at all, so save and stop instead of crashing.
             if (choice == null) {
@@ -190,6 +190,8 @@ public class Podify {
             + "their full title.");
         System.out.println(" - When playing or removing, you can also type "
             + "the song's number from your list.");
+        System.out.println(" - Type 0 when asked for a song or a search to "
+            + "cancel and go back.");
         System.out.println(" - Titles and searches can be up to "
             + PlaylistLLM.MAX_TEXT_LENGTH + " characters.");
         System.out.println(" - Your playlist and play counts are saved "
@@ -228,8 +230,12 @@ public class Podify {
         // replaced by the saved ones.
         PlaylistLLM saved = new PlaylistLLM();
         if (!saved.loadSongs(saveFile)) {
-            System.out.println("Could not restore your playlist: "
-                + saved.getLastError());
+            // Nothing skipped means the file only had a header, so the
+            // user simply saved an empty playlist last time.
+            if (saved.getSkippedRows() > 0) {
+                System.out.println("Could not restore your playlist: "
+                    + saved.getLastError());
+            }
             return;
         }
 
@@ -248,7 +254,7 @@ public class Podify {
 
     // ----------------------------------------------------------
     /**
-     * Shows every imported song with its id.
+     * Shows every imported song with its number and id.
      */
     private void showImportedSongs() {
         List<Song> songs = llm.getImportedSongs();
@@ -259,9 +265,10 @@ public class Podify {
             return;
         }
 
-        System.out.println("Imported songs:");
+        System.out.println("Imported songs (" + songs.size() + " songs):");
         for (int i = 0; i < songs.size(); i++) {
-            System.out.println("  " + describeImported(songs.get(i)));
+            System.out.println("  " + (i + 1) + ". "
+                + describeImported(songs.get(i)));
         }
     }
 
@@ -271,17 +278,26 @@ public class Podify {
      * Searches the imported songs by title or artist.
      */
     private void searchImportedSongs() {
-        String query = readLine("Search for a title or artist: ");
-        if (query == null) {
-            return;
-        }
+        List<Song> results = null;
 
-        List<Song> results = llm.searchSongs(query);
+        while (results == null || results.isEmpty()) {
+            String query = readLine("Search for a title or artist "
+                + "(0 to cancel): ");
+            if (query == null) {
+                return;
+            }
 
-        // searchSongs explains blank, too long and not found by itself.
-        if (results.isEmpty()) {
-            System.out.println(llm.getLastError() + " Please try again.");
-            return;
+            if (query.equals("0")) {
+                System.out.println("Cancelled.");
+                return;
+            }
+
+            results = llm.searchSongs(query);
+
+            // searchSongs explains blank, too long and not found by itself.
+            if (results.isEmpty()) {
+                System.out.println(llm.getLastError() + " Please try again.");
+            }
         }
 
         System.out.println("Found " + results.size() + " song(s):");
@@ -296,16 +312,17 @@ public class Podify {
      * Adds an imported song to the user's playlist.
      */
     private void addSong() {
-        String text = readSongName("Type the id or title of the song to "
-            + "add: ");
-        if (text == null) {
+        // Without this check pickFromList could never find a song.
+        if (llm.numberImportedSongs() == 0) {
+            System.out.println("No songs are imported. Choose 10 to try "
+                + "loading the LLM song file again.");
             return;
         }
 
-        Song song = findImportedSong(text);
+        showImportedSongs();
+        Song song = pickFromList(llm.getImportedSongs(), "add",
+            "the imported songs");
         if (song == null) {
-            System.out.println("Song not found in the imported songs. "
-                + "Choose 1 or 2 to see what you can add.");
             return;
         }
 
@@ -364,18 +381,17 @@ public class Podify {
         }
 
         int plays = song.play();
-        System.out.println("Now playing \"" + song.getName() + "\" by "
+        System.out.println("Now playing \"" + song.getName() + "\" - "
             + song.getArtist() + ". Played " + plays + " time(s).");
     }
 
 
     // ----------------------------------------------------------
     /**
-     * Shows the playlist and lets the user pick a song by number, id or
-     * title.
+     * Shows the playlist and lets the user pick a song from it.
      *
      * @param action what will be done to the song, like "play"
-     * @return the picked song, or null if nothing usable was picked
+     * @return the picked song, or null if nothing was picked
      */
     private Song pickFromPlaylist(String action) {
         if (isPlaylistEmpty()) {
@@ -383,30 +399,48 @@ public class Podify {
         }
 
         showPlaylist();
-        String text = readSongName("Type the number, id or title of the "
-            + "song to " + action + ": ");
-        if (text == null) {
-            return null;
-        }
+        return pickFromList(playlist.getSongs(), action, "your playlist");
+    }
 
-        List<Song> songs = playlist.getSongs();
-        int position = readPosition(text);
 
-        // A number picks from the list shown above, counting from 1.
-        if (position >= 1 && position <= songs.size()) {
-            return songs.get(position - 1);
-        }
+    // ----------------------------------------------------------
+    /**
+     * Keeps asking until the user picks a song by number, id or title.
+     *
+     * @param songs  the list that was just shown to the user
+     * @param action what will be done to the song, like "play"
+     * @param place  where the songs come from, used in the error message
+     * @return the picked song, or null if the user typed 0 to cancel
+     */
+    private Song pickFromList(List<Song> songs, String action, String place) {
+        while (true) {
+            String text = readSongName("Type the number, id or title of the "
+                + "song to " + action + " ");
+            if (text == null) {
+                return null;
+            }
 
-        Song song = findInPlaylist(text);
-        if (song == null && position > 0) {
-            System.out.println("There is no song number " + position
-                + ". Pick a number from 1 to " + songs.size() + ".");
+            int position = readPosition(text);
+
+            // A number picks from the list shown above, counting from 1.
+            if (position >= 1 && position <= songs.size()) {
+                return songs.get(position - 1);
+            }
+
+            Song song = findInList(songs, text);
+            if (song != null) {
+                return song;
+            }
+
+            if (position > 0) {
+                System.out.println("There is no song number " + position
+                    + ". Pick a number from 1 to " + songs.size() + ".");
+            }
+            else {
+                System.out.println("Song not found in " + place
+                    + ". Please try again.");
+            }
         }
-        else if (song == null) {
-            System.out.println("Song not found in your playlist. Choose 5 "
-                + "to see your songs, or 3 to add one.");
-        }
-        return song;
     }
 
 
@@ -465,7 +499,7 @@ public class Podify {
                 playlist.removeSong(song);
                 System.out.println("Deleted \"" + song.getName() + "\".");
             }
-            else {
+            else if(answer.equals("k")){
                 System.out.println("Kept \"" + song.getName() + "\".");
             }
         }
@@ -509,7 +543,7 @@ public class Podify {
      * @return the song as one line of text
      */
     private String describeImported(Song song) {
-        return song.getId() + "  " + song.getName() + " by "
+        return song.getId() + "  " + song.getName() + " - "
             + song.getArtist() + " (" + song.getDuration() + ", "
             + song.getGenre() + ")";
     }
@@ -517,30 +551,13 @@ public class Podify {
 
     // ----------------------------------------------------------
     /**
-     * Finds an imported song by id first, then by title.
+     * Finds a song in the list by id or title, ignoring case.
      *
-     * @param text the id or title the user typed
+     * @param songs the list to look in
+     * @param text  the id or title the user typed
      * @return the song, or null if there is no match
      */
-    private Song findImportedSong(String text) {
-        Song song = llm.getSongById(text);
-        if (song == null) {
-            song = llm.getSong(text);
-        }
-        return song;
-    }
-
-
-    // ----------------------------------------------------------
-    /**
-     * Finds a song in the user's playlist by id or title, ignoring case.
-     *
-     * @param text the id or title the user typed
-     * @return the song, or null if there is no match
-     */
-    private Song findInPlaylist(String text) {
-        List<Song> songs = playlist.getSongs();
-
+    private Song findInList(List<Song> songs, String text) {
         for (int i = 0; i < songs.size(); i++) {
             Song song = songs.get(i);
             if (text.equalsIgnoreCase(song.getId())
@@ -587,32 +604,36 @@ public class Podify {
 
     // ----------------------------------------------------------
     /**
-     * Asks for a song id or title and checks it is not blank or too long.
+     * Keeps asking for a song until the text is not blank or too long.
      *
      * @param prompt the question to show
-     * @return the trimmed text, or null if it was not usable
+     * @return the text, or null if the user typed 0 to cancel
      */
     private String readSongName(String prompt) {
-        String text = readLine(prompt);
-        if (text == null) {
-            return null;
+        while (true) {
+            String text = readLine(prompt + "(0 to cancel): ");
+            if (text == null) {
+                return null;
+            }
+
+            if (text.equals("0")) {
+                System.out.println("Cancelled.");
+                return null;
+            }
+
+            if (text.isEmpty()) {
+                System.out.println("The song cannot be blank. Please try "
+                    + "again.");
+            }
+            else if (text.length() > PlaylistLLM.MAX_TEXT_LENGTH) {
+                System.out.println("That is too long. The limit is "
+                    + PlaylistLLM.MAX_TEXT_LENGTH + " characters. Please "
+                    + "try again.");
+            }
+            else {
+                return text;
+            }
         }
-
-        text = text.trim();
-
-        if (text.isEmpty()) {
-            System.out.println("The song cannot be blank. Please try "
-                + "again.");
-            return null;
-        }
-
-        if (text.length() > PlaylistLLM.MAX_TEXT_LENGTH) {
-            System.out.println("That is too long. The limit is "
-                + PlaylistLLM.MAX_TEXT_LENGTH + " characters.");
-            return null;
-        }
-
-        return text;
     }
 
 

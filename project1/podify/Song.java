@@ -201,7 +201,7 @@ public class Song {
      */
     @Override
     public String toString() {
-        return name + " by " + artist + " (" + duration + ", " + genre
+        return name + " - " + artist + " (" + duration + ", " + genre
             + ") - " + playCount + " plays";
     }
 }
