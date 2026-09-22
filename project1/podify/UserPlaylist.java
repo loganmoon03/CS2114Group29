@@ -6,46 +6,53 @@ import java.util.List;
 
 // -------------------------------------------------------------------------
 /**
- * Represents the user's current playlist.
- * Manages adding, removing, searching, and reordering songs using an ArrayList.
+ * Represents the user's current playlist. Manages adding, removing, searching,
+ * and reordering songs using an ArrayList.
  * 
  * @author Suhana Chowdhury
  * @version 20 Sept 2026
  */
-public class UserPlaylist {
+public class UserPlaylist
+{
 
-    //~ Fields ................................................................
-    
+    // ~ Fields ................................................................
+
     /** Core storage for playlist songs */
     private List<Song> songs;
 
-    //~ Constructors ..........................................................
+    // ~ Constructors ..........................................................
 
     // ----------------------------------------------------------
     /**
      * Constructs a new empty UserPlaylist using an ArrayList.
      */
-    public UserPlaylist() {
+    public UserPlaylist()
+    {
         this.songs = new ArrayList<>();
     }
 
-    //~ Public Methods ........................................................
+    // ~ Public Methods ........................................................
+
 
     // ----------------------------------------------------------
     /**
      * Adds a song to the playlist if it is not null or a duplicate.
      * 
-     * @param song The Song object to add.
+     * @param song
+     *            The Song object to add.
      * @return true if added successfully; false if null or already exists.
      */
-    public boolean addSong(Song song) {
-        if (song == null) {
+    public boolean addSong(Song song)
+    {
+        if (song == null)
+        {
             System.out.println("Error: Cannot add a null song.");
             return false;
         }
 
         // Checks for duplicates in the playlist
-        if (containsSong(song)) {
+        if (containsSong(song))
+        {
             System.out.println("Error: Song already exists in playlist.");
             return false;
         }
@@ -53,21 +60,26 @@ public class UserPlaylist {
         return songs.add(song);
     }
 
+
     // ----------------------------------------------------------
     /**
      * Removes a song from the playlist.
      * 
-     * @param song The Song object to remove.
+     * @param song
+     *            The Song object to remove.
      * @return The removed Song object, or null if not found/invalid.
      */
-    public Song removeSong(Song song) {
-        if (song == null) {
+    public Song removeSong(Song song)
+    {
+        if (song == null)
+        {
             System.out.println("Error: Cannot remove null song.");
             return null;
         }
 
         int index = findSongIndex(song);
-        if (index != -1) {
+        if (index != -1)
+        {
             return songs.remove(index);
         }
 
@@ -75,33 +87,41 @@ public class UserPlaylist {
         return null;
     }
 
+
     // ----------------------------------------------------------
     /**
      * Searches for a particular song in the playlist.
      * 
-     * @param song The Song object to search for.
+     * @param song
+     *            The Song object to search for.
      * @return true if found, false if not found or parameter invalid.
      */
-    public boolean search(Song song) {
-        if (song == null) {
+    public boolean search(Song song)
+    {
+        if (song == null)
+        {
             System.out.println("Error: Search query parameter is null.");
             return false;
         }
 
         // Validation: Blank name check
-        if (song.getName() == null || song.getName().trim().isEmpty()) {
+        if (song.getName() == null || song.getName().trim().isEmpty())
+        {
             System.out.println("Error: Blank song name in search query.");
             return false;
         }
 
         // Validation: Character limit check
-        if (song.getName().length() > 100) {
-            System.out.println("Error: Query exceeds character limit (100 characters max).");
+        if (song.getName().length() > 100)
+        {
+            System.out.println(
+                "Error: Query exceeds character limit (100 characters max).");
             return false;
         }
 
         return containsSong(song);
     }
+
 
     // ----------------------------------------------------------
     /**
@@ -109,11 +129,14 @@ public class UserPlaylist {
      * 
      * @return A list sorted by song title.
      */
-    public List<Song> orderBySong() {
+    public List<Song> orderBySong()
+    {
         List<Song> sortedList = new ArrayList<>(songs);
-        sortedList.sort(Comparator.comparing(Song::getName, String.CASE_INSENSITIVE_ORDER));
+        sortedList.sort(
+            Comparator.comparing(Song::getName, String.CASE_INSENSITIVE_ORDER));
         return sortedList;
     }
+
 
     // ----------------------------------------------------------
     /**
@@ -121,11 +144,15 @@ public class UserPlaylist {
      * 
      * @return A list sorted by artist name.
      */
-    public List<Song> orderByArtist() {
+    public List<Song> orderByArtist()
+    {
         List<Song> sortedList = new ArrayList<>(songs);
-        sortedList.sort(Comparator.comparing(Song::getArtist, String.CASE_INSENSITIVE_ORDER));
+        sortedList.sort(
+            Comparator
+                .comparing(Song::getArtist, String.CASE_INSENSITIVE_ORDER));
         return sortedList;
     }
+
 
     // ----------------------------------------------------------
     /**
@@ -133,9 +160,11 @@ public class UserPlaylist {
      * 
      * @return Number of songs in the playlist.
      */
-    public int numberSongs() {
+    public int numberSongs()
+    {
         return songs.size();
     }
+
 
     // ----------------------------------------------------------
     /**
@@ -143,9 +172,11 @@ public class UserPlaylist {
      * 
      * @return true if size is less than 6, false otherwise.
      */
-    public boolean lessThanSix() {
+    public boolean lessThanSix()
+    {
         return songs.size() < 6;
     }
+
 
     // ----------------------------------------------------------
     /**
@@ -153,30 +184,38 @@ public class UserPlaylist {
      * 
      * @return List of songs in the playlist.
      */
-    public List<Song> getSongs() {
+    public List<Song> getSongs()
+    {
         return this.songs;
     }
 
-    //~ Helper Methods ........................................................
+    // ~ Helper Methods ........................................................
+
 
     /**
      * Helper method to check if the song is already in the playlist.
      */
-    private boolean containsSong(Song target) {
+    private boolean containsSong(Song target)
+    {
         return findSongIndex(target) != -1;
     }
 
+
     /**
-     * Helper method to find index based on the LLM id, or on title and
-     * artist when a song has no id.
+     * Helper method to find index based on the LLM id, or on title and artist
+     * when a song has no id.
      */
-    private int findSongIndex(Song target) {
-        if (target == null) return -1;
-        for (int i = 0; i < songs.size(); i++) {
+    private int findSongIndex(Song target)
+    {
+        if (target == null)
+            return -1;
+        for (int i = 0; i < songs.size(); i++)
+        {
             Song current = songs.get(i);
             // Song.equals compares ids, so two versions of a song with the
             // same title and artist still count as different songs.
-            if (current.equals(target)) {
+            if (current.equals(target))
+            {
                 return i;
             }
         }

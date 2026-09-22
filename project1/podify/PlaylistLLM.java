@@ -250,7 +250,7 @@ public class PlaylistLLM
             return results;
         }
 
-        if (query.length() > MAX_TEXT_LENGTH)
+        if (query.trim().length() > MAX_TEXT_LENGTH)
         {
             lastError = "Search text is too long. The limit is "
                 + MAX_TEXT_LENGTH + " characters.";
